@@ -6,6 +6,6 @@ export const connection = new Pool({
     host: "localhost",
     port: 5432,
     user: "postgres",
-    password: "99541092",
+    password: "password",
     database: "suit-rentals"
 })
