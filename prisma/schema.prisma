@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model rentals {
+  id            Int             @id(map: "rentals_pk") @default(autoincrement())
+  renter_id     Int
+  rental_date   DateTime        @default(dbgenerated("'2023-01-26 11:53:59.879446'::timestamp without time zone")) @db.Timestamp(6)
+  return_date   DateTime        @default(dbgenerated("(now() + '3 days'::interval)")) @db.Timestamp(6)
+  is_returned   Boolean         @default(false)
+  renters        renters         @relation(fields: [renter_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "rentals_fk0")
+  rentals_suits rentals_suits[]
+}
+
+model renters {
+  id      Int       @id(map: "renters_pk") @default(autoincrement())
+  name    String
+  cpf     String    @unique @db.VarChar(11)
+  rentals rentals[]
+}
+
+model sizes {
+  id    Int     @id(map: "sizes_pk") @default(autoincrement())
+  size  String
+  suits suits[]
+}
+
+model suits {
+  id            Int             @id(map: "suits_pk") @default(autoincrement())
+  color         String
+  size_id       Int
+  rentals_suits rentals_suits[]
+  sizes          sizes           @relation(fields: [size_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "suits_fk0")
+}
+
+model rentals_suits {
+  id        Int     @id(map: "rentals_suits_pk") @default(autoincrement())
+  rental_id Int
+  suit_id   Int
+  rentals   rentals @relation(fields: [rental_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "rentals_suits_fk0")
+  suits     suits   @relation(fields: [suit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "rentals_suits_fk1")
+}

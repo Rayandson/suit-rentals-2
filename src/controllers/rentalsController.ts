@@ -1,33 +1,55 @@
 import { Request, Response } from "express";
-import { insertOne, findRentalsByCPF, updateRental, deleteRentalById, countRentalsToBeReturned } from "../repositories/rentalsRepository.js";
-import { Rental } from "../protocols.js";
+import { insertOne, findAll, updateRental, deleteRentalById, findRentalsByCPF } from "../repositories/rentalsRepository.js";
 
 async function createRental(req: Request, res: Response) {
-    const {renter_name, cpf, quantity} = req.body as Rental
+    const { renter_id, suits_ids } = req.body
 
     try {
-        await insertOne(renter_name, cpf, quantity)
+        await insertOne(renter_id, suits_ids)
         res.sendStatus(201)
     } catch(err) {
         console.log(err.message)
-        res.status(500).send(err.message)
+        res.status(500).send(err.message) 
     }
 }
 
-async function getRentalsByCPF(req: Request, res: Response) {
-    const cpf = req.query.cpf as string;
-
+async function getAllRentals(req: Request, res: Response) {
+    const { cpf } = req.query
     try {
-        const rentals = await findRentalsByCPF(cpf)
-        res.status(200).send(rentals.rows)
+        if(cpf) {
+            const result = await findRentalsByCPF(cpf)
+            const rentals = result.map(rental => {
+                const {id, rental_date, return_date, is_returned, renters, rentals_suits} = rental;
+                const rented_suits = rentals_suits.map(suit => {
+                    const {suits} = suit
+                    return {id: suits.id, color: suits.color, size: suits.sizes.size};
+                })
+                return {id, rental_date, return_date, is_returned, renter: renters, rented_suits}
+            }) 
+            res.status(200).send(rentals)
+        } else {
+            const result = await findAll()
+            const rentals = result.map(rental => {
+                const {id, rental_date, return_date, is_returned, renters, rentals_suits} = rental;
+                const rented_suits = rentals_suits.map(suit => {
+                    const {suits} = suit
+                    return {id: suits.id, color: suits.color, size: suits.sizes.size};
+                })
+                return {id, rental_date, return_date, is_returned, renter: renters, rented_suits}
+            })
+            res.status(200).send(rentals)
+        }
+
     } catch(err) {
-        console.log(err.message)
-        res.status(500).send(err.message)
+        console.log(err)
+        res.status(500).send(err)
     }
 }
 
 async function returnRental(req: Request, res: Response) {
-    const id = req.params.id as string;
+    const string_id = req.params.id as string;
+    const id = Number(string_id)
+
     try {
         await updateRental(id);
         res.sendStatus(204)
@@ -38,7 +60,8 @@ async function returnRental(req: Request, res: Response) {
 }
 
 async function deleteRental(req: Request, res: Response) {
-    const id = req.params.id as string;
+    const string_id = req.params.id as string;
+    const id = Number(string_id)
 
     try {
         await deleteRentalById(id)
@@ -49,20 +72,10 @@ async function deleteRental(req: Request, res: Response) {
     }
 }
 
-async function getCurrentlyRentedQuantity(req: Request, res: Response) {
-    try {
-        const quantity = await countRentalsToBeReturned();
-        res.status(200).send(quantity.rows[0].currently_rented)
-    } catch(err) {
-        console.log(err.message)
-        res.status(500).send(err.message)
-    }
-}
 
 export {
     createRental,
-    getRentalsByCPF,
+    getAllRentals,
     returnRental,
     deleteRental,
-    getCurrentlyRentedQuantity
 }
